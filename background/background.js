@@ -149,8 +149,72 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   }
 });
 
+// === Clipboard polling ===
+let lastClipboardText = "";
+let lastClipboardImageHash = "";
+
+// Simple hash for detecting duplicate images without storing full data URLs
+function quickHash(str) {
+  let hash = 0;
+  for (let i = 0; i < Math.min(str.length, 500); i++) {
+    hash = ((hash << 5) - hash) + str.charCodeAt(i);
+    hash |= 0;
+  }
+  return hash.toString();
+}
+
+async function pollClipboard() {
+  await ensureOffscreen();
+  try {
+    const result = await chrome.runtime.sendMessage({ action: "read_clipboard" });
+    if (!result) return;
+
+    if (result.type === "text" && result.content !== lastClipboardText) {
+      lastClipboardText = result.content;
+      await saveItem({
+        type: "text",
+        content: result.content,
+        source: "Copied outside Chrome",
+      });
+    } else if (result.type === "image") {
+      const hash = quickHash(result.content);
+      if (hash !== lastClipboardImageHash) {
+        lastClipboardImageHash = hash;
+        await saveItem({
+          type: "image",
+          content: result.content,
+          source: "Copied outside Chrome",
+        });
+      }
+    }
+  } catch {
+    // Offscreen doc may not be ready
+  }
+}
+
+// Use alarms to keep polling (minimum interval is 0.5 min for MV3)
+// But we also use setInterval for faster polling while service worker is alive
+chrome.alarms.create("clipboard-poll", { periodInMinutes: 0.5 });
+chrome.alarms.onAlarm.addListener((alarm) => {
+  if (alarm.name === "clipboard-poll") {
+    pollClipboard();
+  }
+});
+
+// Poll every 3 seconds while the service worker is active
+setInterval(pollClipboard, 3000);
+
+// Sync lastClipboardText with existing storage to avoid re-saving on startup
+async function syncLastClipboard() {
+  const items = await getItems();
+  if (items.length > 0 && items[0].type === "text") {
+    lastClipboardText = items[0].content;
+  }
+}
+
 // Create offscreen document on startup
 ensureOffscreen();
+syncLastClipboard();
 
 // Inject content script into all existing tabs on startup (covers extension reload)
 chrome.tabs.query({}, (tabs) => {

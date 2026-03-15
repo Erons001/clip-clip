@@ -45,8 +45,13 @@ function readClipboard() {
       }
 
       if (!hasImage) {
-        // Text is already captured by the content script, skip here
-        resolve(null);
+        // Check for text content
+        const text = e.clipboardData.getData("text/plain");
+        if (text?.trim()) {
+          resolve({ type: "text", content: text.trim() });
+        } else {
+          resolve(null);
+        }
       }
     };
 

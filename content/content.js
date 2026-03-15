@@ -1,3 +1,6 @@
+if (window.__clipClipInjected) { /* already running */ } else {
+window.__clipClipInjected = true;
+
 const STORAGE_KEY = "clipboard_items";
 const MAX_ITEMS = 50;
 
@@ -262,3 +265,5 @@ function showPasteMenu(items) {
     }
   });
 }
+
+} // end of __clipClipInjected guard

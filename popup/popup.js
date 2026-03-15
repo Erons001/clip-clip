@@ -63,14 +63,11 @@ function renderItems() {
 
   itemsList.innerHTML = "";
 
-  if (filtered.length === 0) {
-    itemsList.hidden = true;
-    emptyState.hidden = false;
-    return;
-  }
+  const showEmpty = filtered.length === 0 && allItems.length === 0;
+  itemsList.hidden = filtered.length === 0;
+  emptyState.hidden = !showEmpty;
 
-  itemsList.hidden = false;
-  emptyState.hidden = true;
+  if (filtered.length === 0) return;
 
   filtered.forEach((item) => {
     const row = document.createElement("div");

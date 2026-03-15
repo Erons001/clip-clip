@@ -151,3 +151,15 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
 // Create offscreen document on startup
 ensureOffscreen();
+
+// Inject content script into all existing tabs on startup (covers extension reload)
+chrome.tabs.query({}, (tabs) => {
+  for (const tab of tabs) {
+    if (tab.url && !tab.url.startsWith("chrome://") && !tab.url.startsWith("chrome-extension://")) {
+      chrome.scripting.executeScript({
+        target: { tabId: tab.id },
+        files: ["content/content.js"],
+      }).catch(() => {});
+    }
+  }
+});

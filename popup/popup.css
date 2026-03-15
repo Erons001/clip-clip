@@ -293,6 +293,10 @@ html, body {
 }
 
 /* Empty state */
+.empty-state[hidden] {
+  display: none !important;
+}
+
 .empty-state {
   display: flex;
   flex-direction: column;
